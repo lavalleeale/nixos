@@ -35,9 +35,7 @@ in {
       alex = {
         createHome = true;
         isNormalUser = true;
-        extraGroups = [
-          "wheel"
-        ] ++ lib.optionals hostOnly [
+        extraGroups = [ "wheel" ] ++ lib.optionals hostOnly [
           "libvirtd"
           "docker"
           "adbusers"
@@ -112,7 +110,13 @@ in {
         yarn
         jdk
         file
-      ] ++ lib.optionals hostOnly [ fw-ectool waypaper usbutils jetbrains.idea slurp ];
+      ] ++ lib.optionals hostOnly [
+        fw-ectool
+        waypaper
+        usbutils
+        jetbrains.idea
+        slurp
+      ];
 
       sysUtils = [
         bc
@@ -132,8 +136,7 @@ in {
         socat
         trash-cli
       ] ++ lib.optionals hostOnly [ clipman solaar xremap ];
-    in
-    devTools ++ sysUtils;
+    in devTools ++ sysUtils;
   fonts = {
     enableDefaultPackages = true;
     packages = with pkgs; [

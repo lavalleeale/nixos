@@ -3,13 +3,11 @@
 let
   stripFirst = s: builtins.substring 1 (builtins.stringLength s - 1) s;
   hyprlandMonitors = uiSettings.hyprlandMonitors or [ ",preferred,auto,auto" ];
-in
-lib.mkIf (uiSettings.graphical or false) {
+in lib.mkIf (uiSettings.graphical or false) {
   wayland.windowManager.hyprland = {
     enable = true;
-    plugins =
-      let plugins = hyprland-plugins.packages.${pkgs.system};
-      in [ plugins.hyprexpo ];
+    plugins = let plugins = hyprland-plugins.packages.${pkgs.system};
+    in [ plugins.hyprexpo ];
     settings = {
       plugin = { hyprexpo = { columns = 2; }; };
       general = {
@@ -172,15 +170,13 @@ lib.mkIf (uiSettings.graphical or false) {
         "pin, title:Picture-in-Picture"
         "size 30% 30%, title:Picture-in-Picture"
       ];
-    } // lib.genAttrs
-      ((builtins.genList (i: "$color" + toString i) 16)
-        ++ [ "$background" "$foreground" "$cursor" ])
-      (name:
+    } // lib.genAttrs ((builtins.genList (i: "$color" + toString i) 16)
+      ++ [ "$background" "$foreground" "$cursor" ]) (name:
         let key = stripFirst name;
         in "rgb(" + stripFirst
-          (if lib.hasAttr key config.pywal-nix.colourScheme.colours then
-            config.pywal-nix.colourScheme.colours.${key}
-          else
-            config.pywal-nix.colourScheme.special.${key}) + ")");
+        (if lib.hasAttr key config.pywal-nix.colourScheme.colours then
+          config.pywal-nix.colourScheme.colours.${key}
+        else
+          config.pywal-nix.colourScheme.special.${key}) + ")");
   };
 }

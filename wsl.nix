@@ -20,8 +20,5 @@
 
   users.users.alex.initialPassword = "password";
 
-  environment.systemPackages = with pkgs; [
-    curl
-    wslu
-  ];
+  environment.systemPackages = with pkgs; [ curl wslu ];
 }
