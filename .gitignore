@@ -1,0 +1,18 @@
+# Local agent/editor state
+.codex
+.agents/
+
+# Nix build outputs
+result
+result-*
+.direnv/
+
+# Local VM/disk artifacts
+*.qcow2
+*.qcow2.*
+
+# Local secret material
+/key.txt
+
+# Unreferenced local wallpaper copy; the declarative wallpaper is wallpapers/current.
+/current
