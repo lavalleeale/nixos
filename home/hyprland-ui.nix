@@ -260,6 +260,11 @@ in lib.mkIf (uiSettings.graphical or false) {
             elide: Text.ElideRight
           }
         }
+
+        MouseArea {
+          anchors.fill: parent
+          onClicked: playPauseProc.running = true
+        }
       }
 
       Variants {
@@ -425,7 +430,7 @@ in lib.mkIf (uiSettings.graphical or false) {
 
       Process {
         id: mediaProc
-        command: ["sh", "-c", "fmt='{{status}}|{{position}}|{{mpris:length}}|{{mpris:artUrl}}|{{artist}}|{{title}}'; metadata=$(playerctl -a metadata --format \"$fmt\" 2>/dev/null); if printf '%s\\n' \"$metadata\" | awk -F '|' '$1 == \"Playing\" && ($3 + 0) <= 0 { missing=1 } END { exit missing ? 0 : 1 }'; then playerctl pause 2>/dev/null; playerctl play 2>/dev/null; sleep 0.2; metadata=$(playerctl -a metadata --format \"$fmt\" 2>/dev/null); fi; printf '%s\\n' \"$metadata\" | awk -F '|' '$1 == \"Playing\" { if ($5 != \"\" && $6 != \"\") text=$5 \" - \" $6; else if ($6 != \"\") text=$6; else if ($5 != \"\") text=$5; progress=0; hasProgress=0; if (($2 + 0) >= 0 && ($3 + 0) > 0) { progress=($2 + 0) / ($3 + 0); hasProgress=1 } print $4 \"|\" progress \"|\" hasProgress \"|\" text; exit }'"]
+        command: ["sh", "-c", "fmt='{{status}}|{{position}}|{{mpris:length}}|{{mpris:artUrl}}|{{artist}}|{{title}}'; metadata=$(playerctl -a metadata --format \"$fmt\" 2>/dev/null); if printf '%s\\n' \"$metadata\" | awk -F '|' '$1 == \"Playing\" && ($3 + 0) <= 0 { missing=1 } END { exit missing ? 0 : 1 }'; then playerctl pause 2>/dev/null; playerctl play 2>/dev/null; sleep 0.2; metadata=$(playerctl -a metadata --format \"$fmt\" 2>/dev/null); fi; printf '%s\\n' \"$metadata\" | awk -F '|' '$1 == \"Playing\" || $1 == \"Paused\" { if ($5 != \"\" && $6 != \"\") text=$5 \" - \" $6; else if ($6 != \"\") text=$6; else if ($5 != \"\") text=$5; progress=0; hasProgress=0; if (($2 + 0) >= 0 && ($3 + 0) > 0) { progress=($2 + 0) / ($3 + 0); hasProgress=1 } print $4 \"|\" progress \"|\" hasProgress \"|\" text; exit }'"]
         running: true
         stdout: StdioCollector {
           onStreamFinished: {
@@ -436,6 +441,11 @@ in lib.mkIf (uiSettings.graphical or false) {
             root.mediaText = parts.join("|");
           }
         }
+      }
+
+      Process {
+        id: playPauseProc
+        command: ["playerctl", "play-pause"]
       }
 
       Timer {

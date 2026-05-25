@@ -40,7 +40,6 @@ in {
         ] ++ lib.optionals hostOnly [
           "libvirtd"
           "docker"
-          "vboxusers"
           "adbusers"
           "tss"
           "input"

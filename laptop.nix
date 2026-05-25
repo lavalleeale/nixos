@@ -1,4 +1,4 @@
-{ lib, config, pkgs, ... }:
+{ lib, config, pkgs, pkgs-unstable, ... }:
 let
   upstreamLonePlymouthTheme =
     pkgs.adi1090x-plymouth-themes.override { selected_themes = [ "lone" ]; };
@@ -46,11 +46,15 @@ let
       cat ${loneDisplayMessageScript} >> $out/share/plymouth/themes/lone/lone.script
     '';
 in {
-  boot.plymouth = {
-    enable = true;
-    theme = "lone";
-    themePackages = [ lonePlymouthTheme ];
-    tpm2-totp.enable = true;
+  boot = {
+    kernelPackages = pkgs-unstable.linuxPackages_latest;
+
+    plymouth = {
+      enable = true;
+      theme = "lone";
+      themePackages = [ lonePlymouthTheme ];
+      tpm2-totp.enable = true;
+    };
   };
 
   environment = {
@@ -120,7 +124,6 @@ in {
       };
     };
     docker.enable = true;
-    virtualbox.host.enable = true;
   };
   services = {
     usbmuxd.enable = true;
