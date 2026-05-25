@@ -3,16 +3,14 @@
 let
   graphical = uiSettings.graphical or false;
   wsl = uiSettings.wsl or false;
-in
-{
+in {
   home.shellAliases = {
     bell = ''echo -e "\a"'';
     pbcopy = if wsl then "clip.exe" else "wl-copy";
-    pbpaste =
-      if wsl then
-        "powershell.exe -NoProfile -Command Get-Clipboard"
-      else
-        "wl-paste";
+    pbpaste = if wsl then
+      "powershell.exe -NoProfile -Command Get-Clipboard"
+    else
+      "wl-paste";
     please = "sudo $(fc -ln -1)";
     open = if wsl then "wslview" else "xdg-open";
     vg = "valgrind --leak-check=full --track-origins=yes --show-reachable=yes";
@@ -20,7 +18,7 @@ in
     ll = "eza -l";
     nix-s = "nix-shell --run $SHELL -p";
     buildhome =
-      "home-manager switch --flake ~/Documents/Programming/IaC/nixos#alex --cores 0 --option keep-going true -j auto";
+      "home-manager switch --flake ~/Documents/Programming/nixos#alex --cores 0 --option keep-going true -j auto";
   };
 
   programs = {

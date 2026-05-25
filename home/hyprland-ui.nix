@@ -129,6 +129,9 @@ in lib.mkIf (uiSettings.graphical or false) {
       property string batteryText: ""
       property string bluetoothText: ""
       property string mediaText: ""
+      property string mediaArtUrl: ""
+      property real mediaProgress: 0
+      property bool mediaHasProgress: false
       readonly property bool showBattery: ${
         if batteryPath != null then "true" else "false"
       }
@@ -157,6 +160,105 @@ in lib.mkIf (uiSettings.graphical or false) {
           anchors.centerIn: parent
           width: parent.width - 20
           elide: Text.ElideRight
+        }
+      }
+
+      component MediaPill: Rectangle {
+        id: mediaPill
+        property string text: ""
+        property string artUrl: ""
+        property real progress: 0
+        property bool hasProgress: false
+        property int maxWidth: 360
+        implicitWidth: Math.min(mediaLabel.implicitWidth + 42, maxWidth)
+        implicitHeight: 24
+        radius: 8
+        color: root.background
+        clip: true
+
+        Rectangle {
+          id: progressFill
+          readonly property real progressRadius: Math.min(mediaPill.radius, height)
+          anchors {
+            top: parent.top
+            left: parent.left
+          }
+          width: parent.width * Math.max(0, Math.min(mediaPill.progress, 1))
+          color: root.accent
+          height: 5
+          radius: progressRadius
+          opacity: 0.25
+          visible: mediaPill.hasProgress
+
+          Rectangle {
+            anchors {
+              left: parent.left
+              right: parent.right
+              bottom: parent.bottom
+            }
+            height: Math.min(parent.height / 2, parent.width)
+            color: parent.color
+          }
+
+          Rectangle {
+            anchors {
+              top: parent.top
+              right: parent.right
+              bottom: parent.bottom
+            }
+            width: Math.min(parent.width, progressFill.progressRadius)
+            color: parent.color
+          }
+        }
+
+        Row {
+          id: mediaRow
+          anchors {
+            left: parent.left
+            right: parent.right
+            verticalCenter: parent.verticalCenter
+            leftMargin: 8
+            rightMargin: 8
+          }
+          spacing: 6
+
+          Item {
+            width: 16
+            height: 16
+            anchors.verticalCenter: parent.verticalCenter
+
+            Rectangle {
+              anchors.fill: parent
+              radius: 4
+              color: "transparent"
+              clip: true
+              visible: mediaPill.artUrl.length > 0 && coverImage.status !== Image.Error
+
+              Image {
+                id: coverImage
+                anchors.fill: parent
+                source: mediaPill.artUrl
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                cache: false
+                smooth: true
+                visible: parent.visible
+              }
+            }
+
+            BarText {
+              anchors.centerIn: parent
+              text: ""
+              visible: mediaPill.artUrl.length === 0 || coverImage.status === Image.Error
+            }
+          }
+
+          BarText {
+            id: mediaLabel
+            width: Math.max(parent.width - 26, 0)
+            text: mediaPill.text
+            elide: Text.ElideRight
+          }
         }
       }
 
@@ -245,10 +347,12 @@ in lib.mkIf (uiSettings.graphical or false) {
                 Layout.alignment: Qt.AlignVCenter
                 spacing: 5
 
-                Pill {
+                MediaPill {
                   visible: root.mediaText.length > 0
-                  text: "  " + root.mediaText
-                  maxWidth: 360
+                  text: root.mediaText
+                  artUrl: root.mediaArtUrl
+                  progress: root.mediaProgress
+                  hasProgress: root.mediaHasProgress
                 }
                 Pill { text: "  " + root.networkText }
                 Pill { text: "  " + root.loadText }
@@ -321,9 +425,17 @@ in lib.mkIf (uiSettings.graphical or false) {
 
       Process {
         id: mediaProc
-        command: ["sh", "-c", "playerctl -a metadata --format '{{status}}|{{artist}}|{{title}}' 2>/dev/null | awk -F '|' '$1 == \"Playing\" { if ($2 != \"\" && $3 != \"\") print $2 \" - \" $3; else if ($3 != \"\") print $3; else if ($2 != \"\") print $2; exit }'"]
+        command: ["sh", "-c", "fmt='{{status}}|{{position}}|{{mpris:length}}|{{mpris:artUrl}}|{{artist}}|{{title}}'; metadata=$(playerctl -a metadata --format \"$fmt\" 2>/dev/null); if printf '%s\\n' \"$metadata\" | awk -F '|' '$1 == \"Playing\" && ($3 + 0) <= 0 { missing=1 } END { exit missing ? 0 : 1 }'; then playerctl pause 2>/dev/null; playerctl play 2>/dev/null; sleep 0.2; metadata=$(playerctl -a metadata --format \"$fmt\" 2>/dev/null); fi; printf '%s\\n' \"$metadata\" | awk -F '|' '$1 == \"Playing\" { if ($5 != \"\" && $6 != \"\") text=$5 \" - \" $6; else if ($6 != \"\") text=$6; else if ($5 != \"\") text=$5; progress=0; hasProgress=0; if (($2 + 0) >= 0 && ($3 + 0) > 0) { progress=($2 + 0) / ($3 + 0); hasProgress=1 } print $4 \"|\" progress \"|\" hasProgress \"|\" text; exit }'"]
         running: true
-        stdout: StdioCollector { onStreamFinished: root.mediaText = this.text.trim() }
+        stdout: StdioCollector {
+          onStreamFinished: {
+            const parts = this.text.trim().split("|");
+            root.mediaArtUrl = parts.shift() || "";
+            root.mediaProgress = Number(parts.shift() || 0);
+            root.mediaHasProgress = (parts.shift() || "0") === "1";
+            root.mediaText = parts.join("|");
+          }
+        }
       }
 
       Timer {
