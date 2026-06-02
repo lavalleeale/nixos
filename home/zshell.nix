@@ -1,24 +1,25 @@
-{ lib, uiSettings ? { }, ... }:
+{
+  lib,
+  uiSettings ? { },
+  ...
+}:
 
 let
   graphical = uiSettings.graphical or false;
   wsl = uiSettings.wsl or false;
-in {
+in
+{
   home.shellAliases = {
     bell = ''echo -e "\a"'';
     pbcopy = if wsl then "clip.exe" else "wl-copy";
-    pbpaste = if wsl then
-      "powershell.exe -NoProfile -Command Get-Clipboard"
-    else
-      "wl-paste";
+    pbpaste = if wsl then "powershell.exe -NoProfile -Command Get-Clipboard" else "wl-paste";
     please = "sudo $(fc -ln -1)";
-    open = if wsl then "wslview" else "xdg-open";
+    open = if wsl then "explorer.exe" else "xdg-open";
     vg = "valgrind --leak-check=full --track-origins=yes --show-reachable=yes";
     ls = "eza";
     ll = "eza -l";
     nix-s = "nix-shell --run $SHELL -p";
-    buildhome =
-      "home-manager switch --flake ~/Documents/Programming/nixos#alex --cores 0 --option keep-going true -j auto";
+    buildhome = "home-manager switch --flake ~/Documents/Programming/nixos#alex --cores 0 --option keep-going true -j auto";
   };
 
   programs = {
@@ -36,19 +37,23 @@ in {
             local filename="$1"
             latexmk -pdf -halt-on-error "$filename" && latexmk -c "$filename"
         }
-      '' + lib.optionalString graphical ''
+      ''
+      + lib.optionalString graphical ''
         split() {
             local escaped
             escaped=$(printf '%q ' "$@")
             hyprctl dispatch exec "alacritty --working-directory $(pwd) -e sh -c \"$escaped\""
         }
-      '' + ''
+      ''
+      + ''
         bindkey "^[[1;5C" forward-word
         bindkey "^[[1;5D" backward-word
         export GPG_TTY=$(tty)
-      '' + lib.optionalString graphical ''
+      ''
+      + lib.optionalString graphical ''
         wal -Rq
-      '' + ''
+      ''
+      + ''
         autoload -U edit-command-line
         zle -N edit-command-line
         bindkey '^xe' edit-command-line
@@ -74,8 +79,7 @@ in {
     starship = {
       enable = true;
       settings = {
-        format =
-          "[](red)$os$username[](bg:blue fg:red)$directory[](fg:blue bg:green)$git_branch$git_status[](fg:green bg:cyan)$nix_shell[](fg:cyan bg:yellow)$time[ ](fg:yellow)";
+        format = "[](red)$os$username[](bg:blue fg:red)$directory[](fg:blue bg:green)$git_branch$git_status[](fg:green bg:cyan)$nix_shell[](fg:cyan bg:yellow)$time[ ](fg:yellow)";
         username = {
           show_always = true;
           style_user = "bg:red";

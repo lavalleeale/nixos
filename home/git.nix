@@ -1,3 +1,4 @@
+{ pkgs, ... }:
 {
   programs.git = {
     enable = true;
@@ -6,10 +7,8 @@
         name = "Alex Lavallee";
         email = "73203142+lavalleeale@users.noreply.github.com";
       };
-      "credential \"https://github.com\"".helper =
-        "!/run/current-system/sw/bin/gh auth git-credential";
-      "credential \"https://gist.github.com\"".helper =
-        "!/run/current-system/sw/bin/gh auth git-credential";
+      "credential \"https://github.com\"".helper = "!${pkgs.gh}/bin/gh auth git-credential";
+      "credential \"https://gist.github.com\"".helper = "!${pkgs.gh}/bin/gh auth git-credential";
     };
     signing = {
       key = "34F2E4A1C992F98B51C01D22968D37F0C632E219";

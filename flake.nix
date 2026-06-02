@@ -1,12 +1,12 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-25.11";
+    nixpkgs.url = "nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     impermanence.url = "github:nix-community/impermanence";
     nixos-wsl.url = "github:nix-community/NixOS-WSL/main";
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.11";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     pywal-nix = {
@@ -33,10 +33,6 @@
       url = "github:hyprwm/hyprland/v0.53.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    hyprland-plugins = {
-      url = "github:hyprwm/hyprland-plugins/v0.53.0";
-      inputs.hyprland.follows = "hyprland";
-    };
     authentik-nix = {
       url = "github:nix-community/authentik-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -47,38 +43,44 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, ... }:
+  outputs =
+    inputs@{ nixpkgs, ... }:
     let
       inherit (nixpkgs) lib;
       system = "x86_64-linux";
-      sharedConfig = { allowUnfree = true; };
+      sharedConfig = {
+        allowUnfree = true;
+      };
       overlay = final: prev: {
         gorg = inputs.gorg-flake.packages.${system}.default;
         wl-paste = inputs.wl-paste-flake.packages.${system}.default;
         zen-browser = inputs.zen-browser-flake.packages.${system}.default;
-        zen-browser-vaapi = final.runCommand "${final.zen-browser.name}-vaapi" {
-          nativeBuildInputs = [ final.makeWrapper ];
-          meta = final.zen-browser.meta;
-          passthru = final.zen-browser.passthru;
-        } ''
-          cp -a ${final.zen-browser} "$out"
-          chmod -R u+w "$out"
-          substituteInPlace "$out/bin/zen-beta" \
-            --replace-fail '${final.zen-browser}' "$out"
-          cat >> "$out"/lib/zen-bin-*/mozilla.cfg <<'EOF'
+        zen-browser-vaapi =
+          final.runCommand "${final.zen-browser.name}-vaapi"
+            {
+              nativeBuildInputs = [ final.makeWrapper ];
+              meta = final.zen-browser.meta;
+              passthru = final.zen-browser.passthru;
+            }
+            ''
+              cp -a ${final.zen-browser} "$out"
+              chmod -R u+w "$out"
+              substituteInPlace "$out/bin/zen-beta" \
+                --replace-fail '${final.zen-browser}' "$out"
+              cat >> "$out"/lib/zen-bin-*/mozilla.cfg <<'EOF'
 
-          // Prefer VA-API hardware video decoding on the AMD laptop.
-          defaultPref("media.ffmpeg.vaapi.enabled", true);
-          defaultPref("media.hardware-video-decoding.force-enabled", true);
-          defaultPref("media.rdd-ffmpeg.enabled", true);
-          EOF
-          mv "$out/bin/zen-beta" "$out/bin/zen-beta-unwrapped"
-          makeWrapper "$out/bin/zen-beta-unwrapped" "$out/bin/zen-beta" \
-            --set-default MOZ_ENABLE_WAYLAND 1 \
-            --set LIBVA_DRIVER_NAME radeonsi \
-            --set VDPAU_DRIVER radeonsi \
-            --set MOZ_DISABLE_RDD_SANDBOX 1
-        '';
+              // Prefer VA-API hardware video decoding on the AMD laptop.
+              defaultPref("media.ffmpeg.vaapi.enabled", true);
+              defaultPref("media.hardware-video-decoding.force-enabled", true);
+              defaultPref("media.rdd-ffmpeg.enabled", true);
+              EOF
+              mv "$out/bin/zen-beta" "$out/bin/zen-beta-unwrapped"
+              makeWrapper "$out/bin/zen-beta-unwrapped" "$out/bin/zen-beta" \
+                --set-default MOZ_ENABLE_WAYLAND 1 \
+                --set LIBVA_DRIVER_NAME radeonsi \
+                --set VDPAU_DRIVER radeonsi \
+                --set MOZ_DISABLE_RDD_SANDBOX 1
+            '';
       };
       pkgs = import nixpkgs {
         inherit system;
@@ -92,17 +94,17 @@
 
       homeBaseModule = import ./home.nix;
       homeDesktopModule = {
-        imports =
-          [ ./home/desktop.nix ./home/hyprland.nix ./home/hyprland-ui.nix ];
+        imports = [
+          ./home/desktop.nix
+          ./home/hyprland.nix
+          ./home/hyprland-ui.nix
+        ];
       };
-      homeManagerSharedModules =
-        [ inputs.pywal-nix.homeManagerModules.${system}.default ];
+      homeManagerSharedModules = [ inputs.pywal-nix.homeManagerModules.${system}.default ];
 
       commonSpecialArgs = { inherit pkgs-unstable; };
 
-      commonHomeSpecialArgs = commonSpecialArgs // {
-        hyprland-plugins = inputs.hyprland-plugins;
-      };
+      commonHomeSpecialArgs = commonSpecialArgs;
 
       nixpkgsModule = {
         nixpkgs = {
@@ -111,46 +113,87 @@
         };
       };
 
-      registryModule = { nix.registry.nixpkgs.flake = nixpkgs; };
-
-      mkUiSettings = { graphical ? false, wsl ? false, batteryPath ? null
-        , temperaturePath ? null, networkInterface ? null
-        , hyprlockWallpaper ? null, hyprlockProfileImage ? null
-        , hyprlandMonitors ? [ ",preferred,auto,auto" ]
-        , hardwareVideoDecode ? false, }: {
-          inherit graphical wsl batteryPath temperaturePath networkInterface
-            hyprlockWallpaper hyprlockProfileImage hyprlandMonitors
-            hardwareVideoDecode;
-        };
-
-      mkHomeModule = { graphical, ... }: {
-        imports = [ homeBaseModule ]
-          ++ lib.optionals graphical [ homeDesktopModule ];
+      registryModule = {
+        nix.registry.nixpkgs.flake = nixpkgs;
       };
 
-      mkHomeManagerModule = { graphical, uiSettings }: {
-        home-manager = {
-          useGlobalPkgs = true;
-          useUserPackages = true;
-          users.alex = mkHomeModule { inherit graphical uiSettings; };
-          backupFileExtension = "backup";
-          sharedModules = homeManagerSharedModules;
-          extraSpecialArgs = commonHomeSpecialArgs // { inherit uiSettings; };
+      mkUiSettings =
+        {
+          graphical ? false,
+          wsl ? false,
+          batteryPath ? null,
+          temperaturePath ? null,
+          networkInterface ? null,
+          hyprlockWallpaper ? null,
+          hyprlockProfileImage ? null,
+          hyprlandMonitors ? [ ",preferred,auto,auto" ],
+          hardwareVideoDecode ? false,
+        }:
+        {
+          inherit
+            graphical
+            wsl
+            batteryPath
+            temperaturePath
+            networkInterface
+            hyprlockWallpaper
+            hyprlockProfileImage
+            hyprlandMonitors
+            hardwareVideoDecode
+            ;
         };
-      };
 
-      mkHost = { graphical ? false, isWsl ? false, uiSettings ? mkUiSettings {
-        inherit graphical;
-        wsl = isWsl;
-      }, modules, }:
+      mkHomeModule =
+        { graphical, ... }:
+        {
+          imports = [ homeBaseModule ] ++ lib.optionals graphical [ homeDesktopModule ];
+        };
+
+      mkHomeManagerModule =
+        { graphical, uiSettings }:
+        {
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            users.alex = mkHomeModule { inherit graphical uiSettings; };
+            backupFileExtension = "backup";
+            sharedModules = homeManagerSharedModules;
+            extraSpecialArgs = commonHomeSpecialArgs // {
+              inherit uiSettings;
+            };
+          };
+        };
+
+      mkHost =
+        {
+          graphical ? false,
+          isWsl ? false,
+          uiSettings ? mkUiSettings {
+            inherit graphical;
+            wsl = isWsl;
+          },
+          modules,
+        }:
         nixpkgs.lib.nixosSystem {
           inherit system;
-          specialArgs = commonSpecialArgs // { inherit isWsl; };
+          specialArgs = commonSpecialArgs // {
+            inherit isWsl;
+          };
           modules = [
             nixpkgsModule
             (mkHomeManagerModule { inherit graphical uiSettings; })
             inputs.home-manager.nixosModules.home-manager
-          ] ++ modules ++ [ registryModule ];
+          ]
+          ++ lib.optionals graphical [
+            {
+              environment.pathsToLink = [
+                "/share/applications"
+                "/share/xdg-desktop-portal"
+              ];
+            }
+          ]
+          ++ modules
+          ++ [ registryModule ];
         };
 
       laptopUiSettings = mkUiSettings {
@@ -161,8 +204,10 @@
         hyprlockWallpaper = "/home/alex/Pictures/wallpapers/current";
         hyprlockProfileImage = "/home/alex/Pictures/profile.png";
         hardwareVideoDecode = true;
-        hyprlandMonitors =
-          [ ",preferred,auto,auto" "eDP-1,2256x1504@60,0x0,1.175" ];
+        hyprlandMonitors = [
+          ",preferred,auto,auto"
+          "eDP-1,2256x1504@60,0x0,1.175"
+        ];
       };
 
       desktopUiSettings = mkUiSettings { graphical = true; };
@@ -170,7 +215,10 @@
         graphical = false;
         wsl = true;
       };
-    in {
+    in
+    {
+      formatter.${system} = pkgs.nixfmt-tree;
+
       homeConfigurations = {
         alex = inputs.home-manager.lib.homeManagerConfiguration {
           inherit pkgs;

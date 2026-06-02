@@ -2,10 +2,19 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, pkgs-unstable, isWsl ? false, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  pkgs-unstable,
+  isWsl ? false,
+  ...
+}:
 
-let hostOnly = !isWsl;
-in {
+let
+  hostOnly = !isWsl;
+in
+{
   boot.kernel.sysctl = {
     "fs.file-max" = "1048576"; # Example value
   };
@@ -35,10 +44,12 @@ in {
       alex = {
         createHome = true;
         isNormalUser = true;
-        extraGroups = [ "wheel" ] ++ lib.optionals hostOnly [
+        extraGroups = [
+          "wheel"
+        ]
+        ++ lib.optionals hostOnly [
           "libvirtd"
           "docker"
-          "adbusers"
           "tss"
           "input"
           "dialout"
@@ -50,7 +61,12 @@ in {
 
   nix = {
     settings = {
-      experimental-features = [ "nix-command" "flakes" ];
+      max-jobs = "auto";
+      cores = 0;
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
       substituters = [
         "https://lavalleeale.cachix.org"
         "https://cache.nixos.org/"
@@ -65,10 +81,11 @@ in {
 
   networking.networkmanager.enable = hostOnly;
 
-  environment.systemPackages = with pkgs;
+  environment.systemPackages =
+    with pkgs;
     let
-      python3-custom = python3.withPackages (ps:
-        with ps; [
+      python3-custom = python3.withPackages (
+        ps: with ps; [
           aiohttp
           pylast
           argparse
@@ -87,7 +104,8 @@ in {
           requests
           tqdm
           websockets
-        ]);
+        ]
+      );
 
       # Development tools
       devTools = [
@@ -95,6 +113,7 @@ in {
         gnupg
         gcc
         git
+        git-lfs
         gnumake
         go
         lua-language-server
@@ -110,7 +129,8 @@ in {
         yarn
         jdk
         file
-      ] ++ lib.optionals hostOnly [
+      ]
+      ++ lib.optionals hostOnly [
         fw-ectool
         waypaper
         usbutils
@@ -135,8 +155,14 @@ in {
         wget
         socat
         trash-cli
-      ] ++ lib.optionals hostOnly [ clipman solaar xremap ];
-    in devTools ++ sysUtils;
+      ]
+      ++ lib.optionals hostOnly [
+        clipman
+        solaar
+        xremap
+      ];
+    in
+    devTools ++ sysUtils;
   fonts = {
     enableDefaultPackages = true;
     packages = with pkgs; [
@@ -148,8 +174,14 @@ in {
     ];
     fontconfig = {
       defaultFonts = {
-        serif = [ "Liberation Serif" "Vazirmatn" ];
-        sansSerif = [ "Ubuntu" "Vazirmatn" ];
+        serif = [
+          "Liberation Serif"
+          "Vazirmatn"
+        ];
+        sansSerif = [
+          "Ubuntu"
+          "Vazirmatn"
+        ];
         monospace = [ "Ubuntu Mono" ];
       };
     };

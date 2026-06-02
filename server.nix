@@ -1,6 +1,13 @@
-{ config, pkgs, pkgs-unstable, ... }:
-let authentikProxyListenHTTP = "127.0.0.1:9005";
-in {
+{
+  config,
+  pkgs,
+  pkgs-unstable,
+  ...
+}:
+let
+  authentikProxyListenHTTP = "127.0.0.1:9005";
+in
+{
   boot.loader.grub.device = "nodev";
   fileSystems."/" = {
     device = "none";
@@ -37,9 +44,19 @@ in {
       }
     ];
   };
-  networking.firewall.allowedTCPPorts = [ 22 80 443 8000 8443 9000 2283 ];
+  networking.firewall.allowedTCPPorts = [
+    22
+    80
+    443
+    8000
+    8443
+    9000
+    2283
+  ];
   services = {
-    immich = { enable = true; };
+    immich = {
+      enable = true;
+    };
     authentik = {
       enable = true;
       # The environmentFile needs to be on the target host!

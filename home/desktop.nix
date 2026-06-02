@@ -1,4 +1,12 @@
-{ config, lib, pkgs, uiSettings ? { graphical = true; }, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  uiSettings ? {
+    graphical = true;
+  },
+  ...
+}:
 
 lib.mkIf (uiSettings.graphical or false) {
   qt = {
@@ -37,20 +45,23 @@ lib.mkIf (uiSettings.graphical or false) {
         family = "FiraCode Nerd Font Mono";
         style = "Regular";
       };
-      keyboard.bindings = [{
-        key = "N";
-        mods = "Control|Shift";
-        action = "CreateNewWindow";
-      }];
+      keyboard.bindings = [
+        {
+          key = "N";
+          mods = "Control|Shift";
+          action = "CreateNewWindow";
+        }
+      ];
       hints.enabled = [
         {
-          regex =
-            "https?:\\\\/\\\\/[\\\\w.]*(?:[-a-zA-Z0-9()@:%_\\\\+.~#?&\\\\/=]*)";
+          regex = "https?:\\\\/\\\\/[\\\\w.]*(?:[-a-zA-Z0-9()@:%_\\\\+.~#?&\\\\/=]*)";
           command = {
             program = "zen-beta";
             args = [ "--new-tab" ];
           };
-          mouse = { enabled = true; };
+          mouse = {
+            enabled = true;
+          };
         }
         {
           regex = "[\\\\w\\\\.-][\\\\w/-]+\\\\.\\\\S+(:\\\\d+:\\\\d+)?";
@@ -58,7 +69,9 @@ lib.mkIf (uiSettings.graphical or false) {
             program = "code";
             args = [ "--goto" ];
           };
-          mouse = { enabled = true; };
+          mouse = {
+            enabled = true;
+          };
         }
       ];
     };

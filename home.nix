@@ -1,5 +1,10 @@
-{ ... }: {
-  imports = [ ./home/packages.nix ./home/zshell.nix ./home/git.nix ];
+{ ... }:
+{
+  imports = [
+    ./home/packages.nix
+    ./home/zshell.nix
+    ./home/git.nix
+  ];
 
   home = {
     username = "alex";

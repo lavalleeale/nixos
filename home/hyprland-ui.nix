@@ -1,13 +1,14 @@
-{ config, lib, uiSettings ? { }, ... }:
+{
+  config,
+  lib,
+  uiSettings ? { },
+  ...
+}:
 
 let
   batteryPath = uiSettings.batteryPath or null;
-  batteryStatusPath = if batteryPath != null then
-    "${builtins.dirOf batteryPath}/status"
-  else
-    null;
-  hyprlockWallpaper =
-    uiSettings.hyprlockWallpaper or config.pywal-nix.colourScheme.wallpaper;
+  batteryStatusPath = if batteryPath != null then "${builtins.dirOf batteryPath}/status" else null;
+  hyprlockWallpaper = uiSettings.hyprlockWallpaper or config.pywal-nix.colourScheme.wallpaper;
   hyprlockProfileImage = uiSettings.hyprlockProfileImage or null;
   hyprlockLabels = [
     {
@@ -41,34 +42,43 @@ let
       halign = "center";
       valign = "top";
     }
-  ] ++ lib.optionals (batteryPath != null) [{
-    monitor = "";
-    text = "cmd[update:1000] cat ${batteryPath}";
-    color = "rgb(ffffff)";
-    font_size = 24;
-    font_family = "JetBrains Mono";
-    position = "-90, -10";
-    halign = "right";
-    valign = "top";
-  }];
-  topbarBatteryCommand = if batteryPath != null then
-    "cap=$(cat ${batteryPath}); status=$(cat ${batteryStatusPath} 2>/dev/null || true); case $status in Charging) icon='' ;; 'Not charging') icon='' ;; *) if [ $cap -lt 20 ]; then icon=''; elif [ $cap -lt 40 ]; then icon=''; elif [ $cap -lt 60 ]; then icon=''; elif [ $cap -lt 80 ]; then icon=''; else icon=''; fi ;; esac; printf '%s %s%%' $icon $cap"
-  else
-    "printf ''";
-  topbarQml = builtins.replaceStrings [
-    "@showBattery@"
-    "@foreground@"
-    "@background@"
-    "@accent@"
-    "@batteryCommand@"
-  ] [
-    (if batteryPath != null then "true" else "false")
-    config.pywal-nix.colourScheme.special.foreground
-    config.pywal-nix.colourScheme.special.background
-    config.pywal-nix.colourScheme.colours.color5
-    topbarBatteryCommand
-  ] (builtins.readFile ./quickshell-topbar.qml);
-in lib.mkIf (uiSettings.graphical or false) {
+  ]
+  ++ lib.optionals (batteryPath != null) [
+    {
+      monitor = "";
+      text = "cmd[update:1000] cat ${batteryPath}";
+      color = "rgb(ffffff)";
+      font_size = 24;
+      font_family = "JetBrains Mono";
+      position = "-90, -10";
+      halign = "right";
+      valign = "top";
+    }
+  ];
+  topbarBatteryCommand =
+    if batteryPath != null then
+      "cap=$(cat ${batteryPath}); status=$(cat ${batteryStatusPath} 2>/dev/null || true); case $status in Charging) icon='' ;; 'Not charging') icon='' ;; *) if [ $cap -lt 20 ]; then icon=''; elif [ $cap -lt 40 ]; then icon=''; elif [ $cap -lt 60 ]; then icon=''; elif [ $cap -lt 80 ]; then icon=''; else icon=''; fi ;; esac; printf '%s %s%%' $icon $cap"
+    else
+      "printf ''";
+  topbarQml =
+    builtins.replaceStrings
+      [
+        "@showBattery@"
+        "@foreground@"
+        "@background@"
+        "@accent@"
+        "@batteryCommand@"
+      ]
+      [
+        (if batteryPath != null then "true" else "false")
+        config.pywal-nix.colourScheme.special.foreground
+        config.pywal-nix.colourScheme.special.background
+        config.pywal-nix.colourScheme.colours.color5
+        topbarBatteryCommand
+      ]
+      (builtins.readFile ./quickshell-topbar.qml);
+in
+lib.mkIf (uiSettings.graphical or false) {
   services = {
     dunst = {
       enable = true;
@@ -107,8 +117,14 @@ in lib.mkIf (uiSettings.graphical or false) {
     hyprpaper = {
       enable = true;
       settings = {
-        preload = [ "${config.pywal-nix.colourScheme.wallpaper}" ];
-        wallpaper = [ (", " + config.pywal-nix.colourScheme.wallpaper) ];
+        ipc = false;
+        wallpaper = [
+          {
+            monitor = "";
+            path = "${config.pywal-nix.colourScheme.wallpaper}";
+            fit_mode = "cover";
+          }
+        ];
       };
     };
 
@@ -131,65 +147,75 @@ in lib.mkIf (uiSettings.graphical or false) {
 
   home.file.".config/quickshell/topbar/shell.qml".text = topbarQml;
 
+  systemd.user.services.hyprpaper = {
+    Install.WantedBy = lib.mkForce [ "hyprland-session.target" ];
+    Unit = {
+      After = lib.mkForce [ "hyprland-session.target" ];
+      PartOf = lib.mkForce [ "hyprland-session.target" ];
+    };
+  };
+
   programs = {
     hyprlock = {
       enable = true;
-      settings = ({
-        background = {
-          monitor = "";
-          path = hyprlockWallpaper;
-          color = "rgba(0, 0, 0, 0)";
-          blur_passes = 2;
-          contrast = 1;
-          brightness = 0.5;
-          vibrancy = 0.2;
-          vibrancy_darkness = 0.2;
-        };
-        general = {
-          hide_cursor = false;
-          grace = 0;
-          disable_loading_bar = true;
-        };
-        auth = {
-          fingerprint = {
-            enabled = true;
-            ready_message = "Scan fingerprint to unlock";
-            present_message = "Scanning...";
+      settings = (
+        {
+          background = {
+            monitor = "";
+            path = hyprlockWallpaper;
+            color = "rgba(0, 0, 0, 0)";
+            blur_passes = 2;
+            contrast = 1;
+            brightness = 0.5;
+            vibrancy = 0.2;
+            vibrancy_darkness = 0.2;
           };
-        };
-        input-field = {
-          monitor = "";
-          size = "250, 60";
-          outline_thickness = 2;
-          dots_size = 0.2;
-          dots_spacing = 0.35;
-          dots_center = true;
-          outer_color = "rgba(255, 255, 255, 0.2)";
-          inner_color = "rgba(0, 0, 0, 0.2)";
-          font_color = "rgb(ffffff)";
-          fade_on_empty = false;
-          rounding = -1;
-          check_color = "rgb(204, 136, 34)";
-          placeholder_text =
-            ''<i><span foreground="##cdd6f4">Input Password...</span></i>'';
-          hide_input = false;
-          position = "0, -200";
-          halign = "center";
-          valign = "center";
-        };
-        label = hyprlockLabels;
-      } // lib.optionalAttrs (hyprlockProfileImage != null) {
-        image = {
-          monitor = "";
-          path = hyprlockProfileImage;
-          size = 100;
-          border_size = 2;
-          border_color = "rgb(ffffff)";
-          position = "0, -100";
-          halign = "center";
-          valign = "center";
-        };
-      });
+          general = {
+            hide_cursor = false;
+            grace = 0;
+            disable_loading_bar = true;
+          };
+          auth = {
+            fingerprint = {
+              enabled = true;
+              ready_message = "Scan fingerprint to unlock";
+              present_message = "Scanning...";
+            };
+          };
+          input-field = {
+            monitor = "";
+            size = "250, 60";
+            outline_thickness = 2;
+            dots_size = 0.2;
+            dots_spacing = 0.35;
+            dots_center = true;
+            outer_color = "rgba(255, 255, 255, 0.2)";
+            inner_color = "rgba(0, 0, 0, 0.2)";
+            font_color = "rgb(ffffff)";
+            fade_on_empty = false;
+            rounding = -1;
+            check_color = "rgb(204, 136, 34)";
+            placeholder_text = ''<i><span foreground="##cdd6f4">Input Password...</span></i>'';
+            hide_input = false;
+            position = "0, -200";
+            halign = "center";
+            valign = "center";
+          };
+          label = hyprlockLabels;
+        }
+        // lib.optionalAttrs (hyprlockProfileImage != null) {
+          image = {
+            monitor = "";
+            path = hyprlockProfileImage;
+            size = 100;
+            border_size = 2;
+            border_color = "rgb(ffffff)";
+            position = "0, -100";
+            halign = "center";
+            valign = "center";
+          };
+        }
+      );
     };
 
     quickshell = {

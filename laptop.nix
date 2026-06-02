@@ -1,7 +1,14 @@
-{ lib, config, pkgs, pkgs-unstable, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  pkgs-unstable,
+  ...
+}:
 let
-  upstreamLonePlymouthTheme =
-    pkgs.adi1090x-plymouth-themes.override { selected_themes = [ "lone" ]; };
+  upstreamLonePlymouthTheme = pkgs.adi1090x-plymouth-themes.override {
+    selected_themes = [ "lone" ];
+  };
   loneDisplayMessageScript = pkgs.writeText "lone-display-message.script" ''
     // tpm2-totp uses Plymouth's display-message API. Keep the message active
     // when the LUKS password prompt redraws over the normal boot display.
@@ -38,14 +45,14 @@ let
     Plymouth.SetDisplayMessageFunction(DisplayMessageCallback);
     Plymouth.SetHideMessageFunction(HideMessageCallback);
   '';
-  lonePlymouthTheme =
-    pkgs.runCommand "lone-plymouth-theme-with-display-message" { } ''
-      mkdir -p $out/share/plymouth/themes
-      cp -R ${upstreamLonePlymouthTheme}/share/plymouth/themes/lone $out/share/plymouth/themes/lone
-      chmod -R u+w $out/share/plymouth/themes/lone
-      cat ${loneDisplayMessageScript} >> $out/share/plymouth/themes/lone/lone.script
-    '';
-in {
+  lonePlymouthTheme = pkgs.runCommand "lone-plymouth-theme-with-display-message" { } ''
+    mkdir -p $out/share/plymouth/themes
+    cp -R ${upstreamLonePlymouthTheme}/share/plymouth/themes/lone $out/share/plymouth/themes/lone
+    chmod -R u+w $out/share/plymouth/themes/lone
+    cat ${loneDisplayMessageScript} >> $out/share/plymouth/themes/lone/lone.script
+  '';
+in
+{
   boot = {
     kernelPackages = pkgs-unstable.linuxPackages_latest;
 
@@ -64,9 +71,11 @@ in {
       MOZ_ENABLE_WAYLAND = "1";
       VDPAU_DRIVER = "radeonsi";
     };
-    systemPackages = with pkgs; [ libva-utils vdpauinfo ];
-    pathsToLink = [ "/share/applications" "/share/xdg-desktop-portal" ];
-
+    systemPackages = with pkgs; [
+      android-tools
+      libva-utils
+      vdpauinfo
+    ];
     persistence."/nix/persist" = {
       directories = [
         "/etc/ssh"
@@ -100,7 +109,9 @@ in {
         "/etc/machine-id"
         {
           file = "/etc/nix/id_rsa";
-          parentDirectory = { mode = "u=rwx,g=rw,o=rw"; };
+          parentDirectory = {
+            mode = "u=rwx,g=rw,o=rw";
+          };
         }
       ];
     };
@@ -120,7 +131,10 @@ in {
       virtualisation = {
         memorySize = 8192;
         cores = 4;
-        qemu.options = [ "-device" "virtio-vga" ];
+        qemu.options = [
+          "-device"
+          "virtio-vga"
+        ];
       };
     };
     docker.enable = true;
@@ -205,7 +219,6 @@ in {
     ledger.enable = true;
   };
   programs = {
-    adb.enable = true;
     fuse.userAllowOther = true;
     steam.enable = true;
   };
@@ -216,19 +229,21 @@ in {
     };
     sudo = {
       enable = true;
-      extraRules = [{
-        commands = [
-          {
-            command = "${pkgs.fw-ectool}/bin/ectool fanduty *";
-            options = [ "NOPASSWD" ];
-          }
-          {
-            command = "${pkgs.fw-ectool}/bin/ectool autofanctrl";
-            options = [ "NOPASSWD" ];
-          }
-        ];
-        groups = [ "wheel" ];
-      }];
+      extraRules = [
+        {
+          commands = [
+            {
+              command = "${pkgs.fw-ectool}/bin/ectool fanduty *";
+              options = [ "NOPASSWD" ];
+            }
+            {
+              command = "${pkgs.fw-ectool}/bin/ectool autofanctrl";
+              options = [ "NOPASSWD" ];
+            }
+          ];
+          groups = [ "wheel" ];
+        }
+      ];
     };
   };
 }
