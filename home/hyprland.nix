@@ -97,7 +97,10 @@ lib.mkIf (uiSettings.graphical or false) {
           };
           resize_on_border = true;
           allow_tearing = false;
-          layout = "dwindle";
+          layout = "scrolling";
+        };
+        scrolling = {
+          wrap_focus = true;
         };
         decoration = {
           rounding = 10;

@@ -1,4 +1,5 @@
 {
+  pkgs,
   config,
   lib,
   uiSettings ? { },
@@ -85,7 +86,7 @@ lib.mkIf (uiSettings.graphical or false) {
       settings = {
         global = {
           width = 445;
-          height = 100;
+          height = 445;
           offset = "(10, 10)";
           corner_radius = 10;
           padding = 13;
@@ -99,6 +100,7 @@ lib.mkIf (uiSettings.graphical or false) {
           browser = "xdg-open";
           history_length = 10;
           line_height = 16;
+          dmenu = "gorg -m dmenu";
         };
         urgency_low = {
           background = config.pywal-nix.colourScheme.special.background;
@@ -144,8 +146,6 @@ lib.mkIf (uiSettings.graphical or false) {
       };
     };
   };
-
-  home.file.".config/quickshell/topbar/shell.qml".text = topbarQml;
 
   systemd.user.services.hyprpaper = {
     Install.WantedBy = lib.mkForce [ "hyprland-session.target" ];
@@ -220,7 +220,11 @@ lib.mkIf (uiSettings.graphical or false) {
 
     quickshell = {
       enable = true;
+      systemd.enable = true;
       activeConfig = "topbar";
+      configs = {
+        topbar = pkgs.writeTextDir "shell.qml" topbarQml;
+      };
     };
   };
 }
